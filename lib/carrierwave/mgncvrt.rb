@@ -1,4 +1,5 @@
 require "carrierwave/mgncvrt/version"
+require 'rest-client'
 require 'net/https'
 require 'uri'
 
@@ -14,36 +15,32 @@ module CarrierWave
     end
 
     class Configuration
-      attr_accessor :key
+      attr_accessor :auth_key
     end
 
     def mgncvrt
-      cache_stored_file! if !cached?
+      # TODO: ここの動作調べる
+      #cache_stored_file! if !cached?
 
-      key = CarrierWave::Mgncvrt.configuration.key
+     # auth_key = CarrierWave::Mgncvrt.configuration.auth_key
       input = current_path
       output = current_path
 
-      uri = URI.parse('http://cvtr.savept.com/convert')
+      file_path = 'spec/fixtures/hokage.zip'
+      response = RestClient.post('http://cvtr.savept.com/convert', 
+                                 source: File.new(file_path))
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = false
-
-      request = Net::HTTP::Post.new(uri.request_uri)
-      request.basic_auth('api', key)
-
-      response = http.request(request, File.binread(input))
-      json = JSON.parse(response.body, :symbolize_names => true) || {}
+      json = JSON.parse(response.body, symbolize_names: true) || {}
 
       if response.code == '201'
         File.binwrite(output, http.get(response['location']).body)
       else
         raise CarrierWave::ProcessingError,
               I18n.translate(:'errors.messages.mgncvrt_processing_error',
-                             :error => json[:error],
-                             :message => json[:message],
-                             :default => I18n.translate(:'errors.messages.mgncvrt_processing_error',
-                                                        :locale => :en))
+                             error:   json[:error],
+                             message: json[:message],
+                             default: I18n.translate(:'errors.messages.mgncvrt_processing_error',
+                                                        locale: :en))
       end
     end
   end
