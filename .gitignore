@@ -16,4 +16,4 @@ carrierwave-mgncvrt.iml
 /.idea/
 /uploads/
 *.gem
-/vender/bundle
+/vendor/
